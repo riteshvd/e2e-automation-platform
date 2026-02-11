@@ -35,13 +35,28 @@ pipeline {
     stage('Start AUT') {
       steps {
         bat '''
-          cd aut
-          powershell -Command "Start-Process node server.js -WindowStyle Hidden"
-        '''
+  	if not exist artifacts mkdir artifacts
+  	cd aut
+  	powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    	"Start-Process node -ArgumentList 'server.js' -WindowStyle Hidden -	RedirectStandardOutput ..\\artifacts\\aut.log -RedirectStandardError ..\\artifacts	\\aut.err.log"
+	'''
+
         bat '''
-          powershell -Command "Start-Sleep -Seconds 2"
-          powershell -Command "Invoke-WebRequest http://localhost:3001/health | Out-Null"
-        '''
+  	powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    	"$ErrorActionPreference='Stop'; ^
+     	$url='http://localhost:3001/health'; ^
+     	for($i=1; $i -le 20; $i++){ ^
+       	try { ^
+         $resp = Invoke-RestMethod -Uri $url -TimeoutSec 2; ^
+         if($resp.ok -eq $true){ Write-Host 'AUT is healthy'; exit 0 } ^
+       	} catch { ^
+         Write-Host ('Waiting for AUT... attempt ' + $i); ^
+         Start-Sleep -Seconds 1; ^
+       	} ^
+     	} ^
+     	Write-Error 'AUT did not become healthy in time'; exit 1"
+	'''
+
       }
     }
 
