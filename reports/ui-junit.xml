@@ -1,0 +1,10 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="4.336951">
+<testsuite name="login.spec.ts" timestamp="2026-02-08T17:29:54.423Z" hostname="" tests="1" failures="0" skipped="0" time="1.683" errors="0">
+<testcase name="user can login" classname="login.spec.ts" time="1.683">
+</testcase>
+</testsuite>
+<testsuite name="todos.spec.ts" timestamp="2026-02-08T17:29:54.423Z" hostname="" tests="1" failures="0" skipped="0" time="1.42" errors="0">
+<testcase name="user can add a todo" classname="todos.spec.ts" time="1.42">
+</testcase>
+</testsuite>
+</testsuites>

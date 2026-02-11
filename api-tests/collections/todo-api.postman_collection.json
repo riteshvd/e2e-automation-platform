@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "Todo API - E2E",
+    "_postman_id": "11111111-1111-1111-1111-111111111111",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('health returns 200', () => pm.response.to.have.status(200));",
+              "pm.test('health ok=true', () => {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.ok).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login (get JWT)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "login"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('login returns 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('token exists', () => pm.expect(json.token).to.be.a('string'));",
+              "pm.environment.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Todo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"api-todo-{{$timestamp}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/todos",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "todos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('create returns 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('todo has id/title/done', () => {",
+              "  pm.expect(json.todo).to.have.property('id');",
+              "  pm.expect(json.todo).to.have.property('title');",
+              "  pm.expect(json.todo).to.have.property('done');",
+              "});",
+              "pm.environment.set('todoId', json.todo.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "List Todos (contains created)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/todos",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "todos"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('list returns 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('todos is array', () => pm.expect(json.todos).to.be.an('array'));",
+              "pm.test('contains created todoId', () => {",
+              "  const id = pm.environment.get('todoId');",
+              "  pm.expect(json.todos.map(t => t.id)).to.include(id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Mark Todo Done",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"done\": true\n}" },
+        "url": {
+          "raw": "{{baseUrl}}/api/todos/{{todoId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "todos", "{{todoId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('patch returns 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('done is true', () => pm.expect(json.todo.done).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete Todo",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{baseUrl}}/api/todos/{{todoId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "todos", "{{todoId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('delete returns 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

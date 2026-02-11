@@ -1,0 +1,32 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "username": "testuser",
+      "passwordHash": "$2b$10$zR2U4rROknLONmWmf81DJOOpuRx6jf00x/gZlk7BNJPsTv7W0bNUy"
+    }
+  ],
+  "todos": [
+    {
+      "id": "1tKGR5Dl65Ar6yBokri22",
+      "userId": "u1",
+      "title": "todo-1770571797669",
+      "done": false,
+      "createdAt": 1770571797907
+    },
+    {
+      "id": "eWPqFro6VnqUrhS6ZsWPq",
+      "userId": "u1",
+      "title": "Jenkins",
+      "done": false,
+      "createdAt": 1770570858179
+    },
+    {
+      "id": "lBUNrNoBtNXqYd6YMRkix",
+      "userId": "u1",
+      "title": "Postman",
+      "done": false,
+      "createdAt": 1770570849255
+    }
+  ]
+}

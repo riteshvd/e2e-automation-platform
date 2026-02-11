@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Todo API - E2E" tests="6" time="0.116">
+  <testsuite name="Health Check" id="582d9fe4-abd1-4542-8d60-43cb699aaeb9" timestamp="2026-02-08T17:42:05.169Z" tests="2" failures="0" errors="0" time="0.028">
+    <testcase name="health returns 200" time="0.028" classname="HealthCheck"/>
+    <testcase name="health ok=true" time="0.028" classname="HealthCheck"/>
+  </testsuite>
+  <testsuite name="Login (get JWT)" id="000ba825-fb9d-453b-9d63-2db18f0282f9" timestamp="2026-02-08T17:42:05.169Z" tests="2" failures="0" errors="0" time="0.071">
+    <testcase name="login returns 200" time="0.071" classname="LoginGetJwt"/>
+    <testcase name="token exists" time="0.071" classname="LoginGetJwt"/>
+  </testsuite>
+  <testsuite name="Create Todo" id="20517f1d-3c7c-4654-bbfa-959b0256f8bc" timestamp="2026-02-08T17:42:05.169Z" tests="2" failures="0" errors="0" time="0.005">
+    <testcase name="create returns 201" time="0.005" classname="CreateTodo"/>
+    <testcase name="todo has id/title/done" time="0.005" classname="CreateTodo"/>
+  </testsuite>
+  <testsuite name="List Todos (contains created)" id="e7fc0b6b-2a0b-41d5-9b59-3e2f75848f68" timestamp="2026-02-08T17:42:05.169Z" tests="3" failures="0" errors="0" time="0.003">
+    <testcase name="list returns 200" time="0.003" classname="ListTodosContainsCreated"/>
+    <testcase name="todos is array" time="0.003" classname="ListTodosContainsCreated"/>
+    <testcase name="contains created todoId" time="0.003" classname="ListTodosContainsCreated"/>
+  </testsuite>
+  <testsuite name="Mark Todo Done" id="93628768-7f02-4caa-a2ef-6c0766bb4cdf" timestamp="2026-02-08T17:42:05.169Z" tests="2" failures="0" errors="0" time="0.005">
+    <testcase name="patch returns 200" time="0.005" classname="MarkTodoDone"/>
+    <testcase name="done is true" time="0.005" classname="MarkTodoDone"/>
+  </testsuite>
+  <testsuite name="Delete Todo" id="35e2eac9-93b5-4f71-8551-38c455b16514" timestamp="2026-02-08T17:42:05.169Z" tests="1" failures="0" errors="0" time="0.004">
+    <testcase name="delete returns 204" time="0.004" classname="DeleteTodo"/>
+  </testsuite>
+</testsuites>

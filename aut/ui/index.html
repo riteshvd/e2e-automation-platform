@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Todo E2E App</title>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: 30px auto; }
+    .row { display: flex; gap: 10px; margin-bottom: 10px; }
+    input { padding: 8px; flex: 1; }
+    button { padding: 8px 12px; cursor: pointer; }
+    li { margin: 6px 0; display: flex; justify-content: space-between; }
+    .done { text-decoration: line-through; opacity: 0.7; }
+    .card { border: 1px solid #ddd; padding: 15px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h1 data-testid="app-title">Todo E2E App</h1>
+
+  <div class="card" id="loginCard">
+    <h2>Login</h2>
+    <div class="row">
+      <input data-testid="username" placeholder="username" value="testuser" />
+      <input data-testid="password" placeholder="password" type="password" value="password123" />
+      <button data-testid="login-btn">Login</button>
+    </div>
+    <div data-testid="login-msg"></div>
+  </div>
+
+  <div class="card" id="todoCard" style="display:none;">
+    <h2>Todos</h2>
+    <div class="row">
+      <input data-testid="todo-input" placeholder="New todo title..." />
+      <button data-testid="add-btn">Add</button>
+      <button data-testid="logout-btn">Logout</button>
+    </div>
+    <ul data-testid="todo-list"></ul>
+  </div>
+
+<script>
+  // Small helper for querySelector
+  const $ = (sel) => document.querySelector(sel);
+
+  // "Fail fast" helper: gives a clear error if an element isn't found
+  function must(sel) {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error(`Missing element: ${sel}`);
+    return el;
+  }
+
+  const apiBase = "";   // same origin (http://localhost:3001)
+  let token = null;
+
+  async function login() {
+    const username = must('[data-testid="username"]').value;
+    const password = must('[data-testid="password"]').value;
+
+    const res = await fetch(apiBase + "/api/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({username, password})
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      must('[data-testid="login-msg"]').textContent = data.error || "Login failed";
+      return;
+    }
+
+    token = data.token;
+
+    // FIX: these are IDs in the HTML, not data-testid
+    must('#loginCard').style.display = "none";
+    must('#todoCard').style.display = "block";
+
+    await loadTodos();
+  }
+
+  async function loadTodos() {
+    const res = await fetch(apiBase + "/api/todos", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    const data = await res.json();
+
+    const ul = must('[data-testid="todo-list"]');
+    ul.innerHTML = "";
+
+    data.todos.forEach(t => {
+      const li = document.createElement("li");
+      li.dataset.id = t.id;
+      li.innerHTML = `
+        <span class="${t.done ? "done": ""}" data-testid="todo-title">${t.title}</span>
+        <span>
+          <button data-testid="toggle-btn">${t.done ? "Undone":"Done"}</button>
+          <button data-testid="delete-btn">Delete</button>
+        </span>
+      `;
+
+      li.querySelector('[data-testid="toggle-btn"]').onclick = () => toggleTodo(t.id, !t.done);
+      li.querySelector('[data-testid="delete-btn"]').onclick = () => deleteTodo(t.id);
+
+      ul.appendChild(li);
+    });
+  }
+
+  async function addTodo() {
+    const title = must('[data-testid="todo-input"]').value.trim();
+    if (!title) return;
+
+    await fetch(apiBase + "/api/todos", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "Authorization":"Bearer " + token },
+      body: JSON.stringify({title})
+    });
+
+    must('[data-testid="todo-input"]').value = "";
+    await loadTodos();
+  }
+
+  async function toggleTodo(id, done) {
+    await fetch(apiBase + "/api/todos/" + id, {
+      method: "PATCH",
+      headers: { "Content-Type":"application/json", "Authorization":"Bearer " + token },
+      body: JSON.stringify({done})
+    });
+    await loadTodos();
+  }
+
+  async function deleteTodo(id) {
+    await fetch(apiBase + "/api/todos/" + id, {
+      method: "DELETE",
+      headers: { "Authorization":"Bearer " + token }
+    });
+    await loadTodos();
+  }
+
+  function logout() {
+    token = null;
+
+    // FIX: these are IDs in the HTML
+    must('#todoCard').style.display = "none";
+    must('#loginCard').style.display = "block";
+  }
+
+  must('[data-testid="login-btn"]').onclick = login;
+  must('[data-testid="add-btn"]').onclick = addTodo;
+  must('[data-testid="logout-btn"]').onclick = logout;
+</script>
+</body>
+</html>
