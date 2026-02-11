@@ -143,15 +143,12 @@ pipeline {
     }
   }
 
-  post {
-    always {
-      // SAFER cleanup: kill the process holding port 3001 instead of killing all node processes
-      bat '''
-        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-          "$p = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object -First 1; ^
-           if($p){ Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host ('Stopped PID ' + $p.OwningProcess) } ^
-           else { Write-Host 'No process found on port 3001' }"
-      '''
-    }
+post {
+  always {
+    bat '''
+      powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='SilentlyContinue'; $c = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object -First 1; if ($c) { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host ('Stopped PID ' + $c.OwningProcess + ' on port 3001'); } else { Write-Host 'No process found on port 3001'; }"
+    '''
   }
+}
+
 }
