@@ -22,8 +22,12 @@ pipeline {
           cd ..\\ui-tests
           if not exist node_modules npm install
 
-          cd ..
+          cd ..\\api-tests
           if not exist node_modules npm install
+
+          cd ..
+          if not exist reports mkdir reports
+          if not exist artifacts mkdir artifacts
         '''
         bat '''
           cd ui-tests
@@ -32,18 +36,17 @@ pipeline {
       }
     }
 
-stage('Start AUT') {
-  steps {
-    bat '''
-      if not exist artifacts mkdir artifacts
-      cd aut
-      powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath node -ArgumentList 'server.js' -WindowStyle Hidden -RedirectStandardOutput '..\\artifacts\\aut.log' -RedirectStandardError '..\\artifacts\\aut.err.log'"
-    '''
-    bat '''
-      powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $url='http://localhost:3001/health'; for($i=1; $i -le 20; $i++){ try { $resp=Invoke-RestMethod -Uri $url -TimeoutSec 2; if($resp.ok -eq $true){ Write-Host 'AUT is healthy'; exit 0 } } catch { Write-Host ('Waiting for AUT... attempt ' + $i); Start-Sleep -Seconds 1 } } Write-Error 'AUT did not become healthy in time'; exit 1"
-    '''
-  }
-}
+    stage('Start AUT') {
+      steps {
+        bat '''
+          cd aut
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath node -ArgumentList 'server.js' -WindowStyle Hidden -RedirectStandardOutput '..\\artifacts\\aut.log' -RedirectStandardError '..\\artifacts\\aut.err.log'"
+        '''
+        bat '''
+          powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $url='http://localhost:3001/health'; for($i=1; $i -le 30; $i++){ try { $resp=Invoke-RestMethod -Uri $url -TimeoutSec 2; if($resp.ok -eq $true){ Write-Host 'AUT is healthy'; exit 0 } } catch { Write-Host ('Waiting for AUT... attempt ' + $i); Start-Sleep -Seconds 1 } } Write-Error 'AUT did not become healthy in time'; exit 1"
+        '''
+      }
+    }
 
     stage('Run Tests (Parallel)') {
       parallel {
@@ -65,8 +68,40 @@ stage('Start AUT') {
               cd ui-tests
               set BASE_URL=http://localhost:3001
               set CI=true
-              npx playwright test
+
+              REM Produce CI-friendly reports into /reports
+              npx playwright test --reporter=line,html,junit
+
+              REM Copy Playwright HTML report into repo-level reports folder for Jenkins publishing
+              if exist playwright-report (
+                if not exist ..\\reports\\ui-html mkdir ..\\reports\\ui-html
+                xcopy /E /I /Y playwright-report ..\\reports\\ui-html
+              )
+
+              REM Copy JUnit XML into repo-level reports folder
+              if exist test-results\\junit.xml (
+                copy /Y test-results\\junit.xml ..\\reports\\ui-junit.xml
+              )
             '''
+          }
+        }
+      }
+    }
+
+    stage('Flaky Analysis') {
+      steps {
+        bat '''
+          REM Run flaky analyzer (creates reports/flaky-summary.json)
+          node tools\\flaky-analyzer.js
+        '''
+        script {
+          // Optional: Mark build UNSTABLE if flaky detected (but don't fail)
+          if (fileExists('reports/flaky-summary.json')) {
+            def flakyJson = readFile('reports/flaky-summary.json')
+            if (flakyJson.contains('"flakyDetected": true')) {
+              currentBuild.result = 'UNSTABLE'
+              echo "Marked UNSTABLE due to flaky signal (retry/noise detected)."
+            }
           }
         }
       }
@@ -75,6 +110,7 @@ stage('Start AUT') {
     stage('Publish Reports') {
       steps {
         junit allowEmptyResults: true, testResults: 'reports/*.xml'
+
         publishHTML(target: [
           allowMissing: true,
           alwaysLinkToLastBuild: true,
@@ -83,6 +119,7 @@ stage('Start AUT') {
           reportFiles: 'index.html',
           reportName: 'Playwright UI Report'
         ])
+
         publishHTML(target: [
           allowMissing: true,
           alwaysLinkToLastBuild: true,
@@ -91,14 +128,29 @@ stage('Start AUT') {
           reportFiles: 'api-html.html',
           reportName: 'Newman API Report'
         ])
+
+        publishHTML(target: [
+          allowMissing: true,
+          alwaysLinkToLastBuild: true,
+          keepAll: true,
+          reportDir: 'reports',
+          reportFiles: 'flaky-summary.json',
+          reportName: 'Flaky Summary (JSON)'
+        ])
+
+        archiveArtifacts artifacts: 'reports/**, artifacts/**', allowEmptyArchive: true
       }
     }
   }
 
   post {
     always {
+      // SAFER cleanup: kill the process holding port 3001 instead of killing all node processes
       bat '''
-        powershell -Command "Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force"
+        powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+          "$p = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object -First 1; ^
+           if($p){ Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host ('Stopped PID ' + $p.OwningProcess) } ^
+           else { Write-Host 'No process found on port 3001' }"
       '''
     }
   }
