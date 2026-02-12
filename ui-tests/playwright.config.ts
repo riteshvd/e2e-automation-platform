@@ -1,25 +1,28 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: "./tests",
+  timeout: 30_000,
+  expect: { timeout: 10_000 },
 
-  timeout: 30_000,              // prevent hanging tests
-  expect: { timeout: 10_000 },  // auto-wait for assertions
+  // Stability strategy
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 2 : undefined,
+  fullyParallel: true,
 
-  retries: process.env.CI ? 1 : 0,   // retry ONLY in CI
-  workers: process.env.CI ? 4 : 2,   // parallelism
-
-  reporter: [
-    ['list'],
-    ['junit', { outputFile: '../reports/ui-junit.xml' }],
-    ['html', { outputFolder: '../reports/ui-html', open: 'never' }]
-  ],
-
+  // Observability artifacts
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3001',
-    headless: !!process.env.CI,
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
-  }
+    baseURL: process.env.BASE_URL || "http://localhost:3001",
+    trace: process.env.CI ? "on-first-retry" : "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: process.env.CI ? "retain-on-failure" : "off",
+  },
+
+  // Reporters for Jenkins + dashboard generator
+  reporter: [
+    ["line"],
+    ["html", { outputFolder: "../reports/ui-html", open: "never" }],
+    ["junit", { outputFile: "../reports/ui-junit.xml" }],
+    ["json", { outputFile: "../reports/ui-results.json" }],
+  ],
 });

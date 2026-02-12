@@ -1,11 +1,15 @@
-const express = require("express");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const { Low } = require("lowdb");
-const { JSONFile } = require("lowdb/node");
-const { nanoid } = require("nanoid");
-const path = require("path");
+import express from "express";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { nanoid } from "nanoid";
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());

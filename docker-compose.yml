@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+
+  aut:
+    build: ./aut
+    container_name: aut
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api-tests:
+    build: ./api-tests
+    container_name: api-tests
+    depends_on:
+      aut:
+        condition: service_healthy
+    volumes:
+      - ./reports:/app/reports
+    environment:
+      - BASE_URL=http://aut:3001
+    command: >
+      npx newman run collections/todo-api.postman_collection.json
+      -e env/local.postman_environment.json
+      -r cli,junit,htmlextra
+      --reporter-junit-export reports/api-junit.xml
+      --reporter-htmlextra-export reports/api-html.html
+
+  ui-tests:
+    image: mcr.microsoft.com/playwright:v1.58.2-jammy
+    container_name: ui-tests
+    depends_on:
+      aut:
+        condition: service_healthy
+    working_dir: /app
+    volumes:
+      - ./ui-tests:/app
+      - ./reports:/app/reports
+    environment:
+      - BASE_URL=http://aut:3001
+      - CI=true
+    command: >
+      bash -c "npm ci &&
+      npx playwright test --reporter=line,html,junit"
