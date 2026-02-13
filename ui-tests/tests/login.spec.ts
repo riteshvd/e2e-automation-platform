@@ -1,11 +1,13 @@
-import { test, expect } from '@playwright/test';
-import { LoginPage } from '../pages/LoginPage';
+import { test, expect } from "@playwright/test";
 
-test('user can login', async ({ page }) => {
-  const login = new LoginPage(page);
+test("user can login @smoke @critical", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("username").fill("testuser");
+  await page.getByTestId("password").fill("password123");
+  await page.getByRole("button", { name: "Login" }).click();
+  await expect(page.getByText("Todos")).toBeVisible();
+});
 
-  await login.goto();
-  await login.login('testuser', 'password123');
-
-  await expect(page.locator('#todoCard')).toBeVisible();
+test("broken test @quarantine", async ({ page }) => {
+  // ...
 });

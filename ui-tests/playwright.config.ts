@@ -1,28 +1,28 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
-  testDir: "./tests",
-  timeout: 30_000,
-  expect: { timeout: 10_000 },
-
-  // Stability strategy
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
-  fullyParallel: true,
+  timeout: 30 * 1000,
 
-  // Observability artifacts
-  use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3001",
-    trace: process.env.CI ? "on-first-retry" : "retain-on-failure",
-    screenshot: "only-on-failure",
-    video: process.env.CI ? "retain-on-failure" : "off",
+  expect: {
+    timeout: 5000,
   },
 
-  // Reporters for Jenkins + dashboard generator
   reporter: [
-    ["line"],
-    ["html", { outputFolder: "../reports/ui-html", open: "never" }],
-    ["junit", { outputFile: "../reports/ui-junit.xml" }],
-    ["json", { outputFile: "../reports/ui-results.json" }],
+    ['line'],
+    ['html', { outputFolder: '../reports/ui-html', open: 'never' }],
+    ['junit', { outputFile: '../reports/ui-junit.xml' }],
   ],
+
+  use: {
+    baseURL: process.env.BASE_URL || 'http://localhost:3001',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    actionTimeout: 10 * 1000,
+  },
+
+  workers: process.env.CI ? 2 : undefined,
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
 });
